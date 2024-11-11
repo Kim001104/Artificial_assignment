@@ -1,74 +1,197 @@
 import os
-from PIL import Image
-import random
+import csv
 import math
-import matplotlib.pyplot as plt
-import numpy as np
+import random
+from PIL import Image
 
-#편향은 b로 설정하고 뉴런이 얼마나 "쉽게 활성화" 되느냐를 제어함.
-#반면 w1,w2는 가중치로 각 신호에 얼마나 많은 "영향"을 주느냐
-#활성화 함수: 입력신호의 총합이 활성화를 일으키는지 정하는 역할
-# a는 입력신호의 총합 h()는 활성화 함수, y는 출력
-#활성화 함수는 계단 함수로도 불리는데 "시그모이드 함수" 사용
+# 하이퍼파라미터 설정
+input_size = 4096      # 64x64 이미지의 입력 크기
+hidden_layers = [96]   # 히든 레이어 노드 수
+output_size = 110      # 클래스 개수
+learning_rate = 0.01
+epochs = 3
 
+# 데이터 로드 함수
+def load_data(sub_dir, file_name):
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(current_dir, '한글글자데이터', sub_dir, file_name)
 
-#기계학습이란? 데이터에서 답을 찾고 패턴을 발견하여 데이터로 이야기를 만드는 것!!!
-#특징을 추출하고 그 특징의 패턴을 기계학습 기술로 학습하는 방법이 있다. 여기에서 말하는 특징이란 
-#입력 데이터(폰트 글씨들.bmp)에서 본질적인 데이터(픽셀의 검은색과 하얀색)을 정확하게 추출할 수 있도록 설계된 변환기
-#훈련 데이터와 시험 데이터를 나누는 이유느?
-#범용능력에 있어서 인데 왜??(아직 보지 못 하였던 문제를 올바르게 찾아야함.)
-#그렇다면 폰트를 컴퓨터가 인식을 해야하는데 아직 한번도 보지 못하였으니깐 데이터에서 훈련 데이터 따로 테스트 데이터로 나눠야한다는 소리
-
-# layer_num = 6       #총 8층의 레이어들이 있음(인,아웃풋 포함)
-# epoch = 10          
-# lr = 0.1            #학습률 0.1
-
-# image_size = 64     #bmp파일의 1차원의 사이즈가 64pixel
-
-# input_node_num = image_size*image_size      #bmp파일을 1차원 리스트로 변환하면 4096
-# hidden_node_num = [1024,512,128,64]     #히든 계층의 레이어 개수를 4개로 정하고,각각 계층의 노드 개수 정해줌.
-# output_nodes_num = 11                   #CSV파일에 레이블이 11개 있어서 아웃풋 레이어는 11로 설정
-
-# train_datas_num = 1222      #11개 폰트 111글자
-# test_datas_num = 333        #3개 폰트 111글자
-
-# #활성화 함수(시그모이드, softmax)
-# def sigmoid(x):
-#     return 1 / (1 + math.exp(-x))
-
-# # softmax
-# def softmax(input):     #마지막 출력 계층에서 계산을 용이하게 하기 위함.
-#     temp = []
-#     exp_value_sum = 0
-#     max_value = max(input)
-
-#     for i in range(len(input)):
-#         # overflow 문제를 방지하기 위해 최댓값을 빼는 방식으로 수를 낮춘다
-#         exp_value = math.exp(input[i] - max_value)
-#         exp_value_sum += exp_value
-#         temp.append(exp_value)
+    data = []
+    labels = []
     
-#     for i in range(len(input)):
-#         total = exp_value_sum
-#         # 각각의 값을 전체 값의 합으로 나눠준다
-#         temp[i] = temp[i]/exp_value_sum
+    with open(file_path, 'r') as f:
+        reader = csv.reader(f)
 
-#     return temp
+        for row in reader:
+            label = int(row[0])  # 레이블 값
+            row_data = [float(value) for value in row[1:]]  # 픽셀 데이터
+            data.append(row_data)
 
-# #행렬 곱
-# def matrix_multiplication(prev_node_num, current_node_num, weight, data):
-#     output = []    
-#     for i in range(current_node_num):
-#         value = 0
-#         for j in range(prev_node_num):
-#             value += weight[i][j] * data[j]
-#         output.append(value)
-        
-#     return output
+            one_hot_label = [0] * output_size
+            one_hot_label[label] = 1
+            labels.append(one_hot_label)
 
-# #퍼셉트론 정의 클래스
-# class Perceptron:
-#     def __init__(self, input_dim, learning_rate=0.1):
-#         self.weights = random
-#         pass
-    
+    return data, labels
+
+# ReLU 함수 및 Softmax 함수
+def relu(input):
+    return max(input, 0)
+
+def all_relu(input):
+    return [relu(value) for value in input]
+
+def softmax(input):
+    max_value = max(input)
+    exp_values = [math.exp(i - max_value) for i in input]
+    sum_exp = sum(exp_values)
+    return [value / sum_exp for value in exp_values]
+
+# 행렬 곱셈 함수
+def matrix_multiplication(prev_node_num, current_node_num, weight, data):
+    output = []
+    for i in range(current_node_num):
+        value = sum(weight[i][j] * data[j] for j in range(prev_node_num))
+        output.append(value)
+    return output
+
+# Layer 클래스 정의
+class Layer:
+    def __init__(self, act_type, layer_idx):
+        self.act = act_type
+        self.layer_idx = layer_idx
+        self.weight = []
+        self.bias = []
+        self.cache = {}
+        self.dW = []
+        self.db = []
+
+    def init_parameter(self, current_node_num, prev_node_num, layer_num):
+        stddev = math.sqrt(2.0 / prev_node_num) if self.layer_idx != layer_num - 1 else math.sqrt(1.0 / prev_node_num)
+        weight = [[random.gauss(0, stddev) for _ in range(prev_node_num)] for _ in range(current_node_num)]
+        bias = [0 for _ in range(current_node_num)]
+        dW = [[0 for _ in range(prev_node_num)] for _ in range(current_node_num)]
+        db = [0 for _ in range(current_node_num)]
+        return weight, bias, dW, db
+
+    def save_set(self, prev_act, Z):
+        self.cache['prev_act'] = prev_act
+        self.cache['Z'] = Z
+
+    def save_grad(self, dW, db, current_node_num, prev_node_num):
+        for i in range(current_node_num):
+            self.db[i] += db[i]
+            for j in range(prev_node_num):
+                self.dW[i][j] += dW[i][j]
+
+    def update_parameter(self, current_node_num, prev_node_num, lr, train_data_num):
+        for i in range(current_node_num):
+            self.db[i] /= train_data_num
+            for j in range(prev_node_num):
+                self.dW[i][j] /= train_data_num
+        for i in range(current_node_num):
+            self.bias[i] -= self.db[i] * lr
+            for j in range(prev_node_num):
+                self.weight[i][j] -= lr * self.dW[i][j]
+
+    def clear_grad(self, current_node_num, prev_node_num):
+        for i in range(current_node_num):
+            self.db[i] = 0
+            for j in range(prev_node_num):
+                self.dW[i][j] = 0
+
+# ModelStruct 클래스 정의
+class ModelStruct:
+    def __init__(self, layer_num):
+        self.layer_num = layer_num
+        self.layers = []
+        self.layer_node_num = []
+        self.train_data = []
+        self.test_data = []
+        self.train_target = []
+        self.test_target = []
+        self.train_data_num = 0
+        self.test_data_num = 0
+
+    def load_data(self, train_sub_dir, train_file_name, test_sub_dir, test_file_name):
+        self.train_data, self.train_target = load_data(train_sub_dir, train_file_name)
+        self.test_data, self.test_target = load_data(test_sub_dir, test_file_name)
+        self.train_data_num = len(self.train_data)
+        self.test_data_num = len(self.test_data)
+
+    def insert_new_layer(self, act_type, layer_idx):
+        layer = Layer(act_type, layer_idx)
+        self.layers.append(layer)
+        if act_type != 'none':
+            self.layers[layer_idx].weight, self.layers[layer_idx].bias, self.layers[layer_idx].dW, self.layers[layer_idx].db = layer.init_parameter(
+                current_node_num=self.layer_node_num[layer_idx],
+                prev_node_num=self.layer_node_num[layer_idx - 1],
+                layer_num=self.layer_num
+            )
+
+    def forward_pass(self, data_idx, data_type):
+        act = self.train_data[data_idx] if data_type == "train" else self.test_data[data_idx]
+        for i in range(1, self.layer_num):
+            Z = matrix_multiplication(
+                prev_node_num=self.layer_node_num[i-1],
+                current_node_num=self.layer_node_num[i],
+                weight=self.layers[i].weight,
+                data=act
+            )
+            for j in range(self.layer_node_num[i]):
+                Z[j] += self.layers[i].bias[j]
+            self.layers[i].save_set(act, Z)
+            act = all_relu(Z) if self.layers[i].act == "relu" else softmax(Z)
+        return act
+
+    def calc_output_layer_dZ(self, output, target):
+        return [output[i] - target[i] for i in range(len(output))]
+
+    def backward_pass(self, output, data_idx):
+        dZ = self.calc_output_layer_dZ(output, self.train_target[data_idx])
+        dW = self.calc_dW(self.layer_node_num[-1], self.layer_node_num[-2], dZ, -1)
+        db = dZ
+        dA_prev = self.calc_dA_prev(self.layer_node_num[-1], self.layer_node_num[-2], -1, dZ)
+        self.layers[-1].save_grad(dW, db, self.layer_node_num[-1], self.layer_node_num[-2])
+
+        for i in range(self.layer_num - 2, 0, -1):
+            dZ = self.calc_hidden_layer_dZ(dA_prev, i)
+            dW = self.calc_dW(self.layer_node_num[i], self.layer_node_num[i-1], dZ, i)
+            db = dZ
+            dA_prev = self.calc_dA_prev(self.layer_node_num[i], self.layer_node_num[i-1], i, dZ)
+            self.layers[i].save_grad(dW, db, self.layer_node_num[i], self.layer_node_num[i-1])
+
+    def train(self):
+        for e in range(epochs):
+            correct = sum(1 for idx in range(self.train_data_num) if self.isCorrect(self.forward_pass(idx, "train"), idx))
+            print(f"Epoch {e+1}/{epochs}, Accuracy: {correct / self.train_data_num}")
+            for i in range(1, self.layer_num):
+                self.layers[i].update_parameter(self.layer_node_num[i], self.layer_node_num[i-1], learning_rate, self.train_data_num)
+                self.layers[i].clear_grad(self.layer_node_num[i], self.layer_node_num[i-1])
+
+    def predict(self):
+        correct = sum(1 for idx in range(self.test_data_num) if self.isCorrect(self.forward_pass(idx, "test"), idx))
+        print(f"Test Accuracy: {correct / self.test_data_num}")
+
+    def isCorrect(self, output, data_idx):
+        return output.index(max(output)) == self.train_target[data_idx].index(1)
+
+# 모델 초기화 및 레이어 추가
+model = ModelStruct(layer_num=3)
+model.layer_node_num = [input_size] + hidden_layers + [output_size]
+
+for i in range(model.layer_num):
+    if i == 0:
+        model.insert_new_layer(act_type="none", layer_idx=i)
+    elif i == model.layer_num - 1:
+        model.insert_new_layer(act_type="softmax", layer_idx=i)
+    else:
+        model.insert_new_layer(act_type="relu", layer_idx=i)
+
+# 데이터 로드 및 모델 훈련
+train_sub_dir = 'train'
+train_file_name = 'train_data.csv'
+test_sub_dir = 'test'
+test_file_name = 'test_data.csv'
+model.load_data(train_sub_dir, train_file_name, test_sub_dir, test_file_name)
+model.train()
+model.predict()
