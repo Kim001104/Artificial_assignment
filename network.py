@@ -3,20 +3,37 @@ import random
 import math
 import os
 import numpy as np  
+# import matplotlib.pyplot as plt
 
-total_layers_num = 7       # 총 8층의 레이어들이 있음(인,아웃풋 포함)
-epoch = 10          
-lr = 0.1            # 학습률 0.1
 
-image_size = 64     # bmp 파일의 1차원의 사이즈가 64 픽셀
+# total_layers_num = 7       # 총 8층의 레이어들이 있음(인,아웃풋 포함)
+# epoch = 10          
+# lr = 0.1            # 학습률 0.1
 
-input_node_num = image_size * image_size     # bmp 파일을 1차원 리스트로 변환하면 4096
-hidden_nodes_num = [3000, 2000, 1000, 500, 100]        # 히든 계층의 레이어 개수를 4개로 설정, 각 계층의 노드 개수 설정
-output_nodes_num = 10                         # CSV 파일에 레이블이 11개 있어서 아웃풋 레이어는 11로 설정
+# image_size = 64     # bmp 파일의 1차원의 사이즈가 64 픽셀
 
-train_datas_num = 1110      # 10개 폰트 111글자
-test_datas_num = 333        # 3개 폰트 111글자
+# input_node_num = image_size * image_size     # bmp 파일을 1차원 리스트로 변환하면 4096
+# hidden_nodes_num = [3000, 2000, 1000, 500, 100]        # 히든 계층의 레이어 개수를 4개로 설정, 각 계층의 노드 개수 설정
+# output_nodes_num = 10                         # CSV 파일에 레이블이 11개 있어서 아웃풋 레이어는 11로 설정
 
+# train_datas_num = 1110      # 10개 폰트 111글자
+# test_datas_num = 333        # 3개 폰트 111글자
+
+# print("훈련 데이터 개수:", len(train_data))  # 1110여야 함
+# print("훈련 레이블 개수:", len(train_labels))  # 1110여야 함
+# print("테스트 데이터 개수:", len(test_data))  # 333여야 함
+# print("테스트 레이블 개수:", len(test_labels))  # 333여야 함
+
+# # 첫 번째 데이터와 레이블의 크기 확인
+# print("첫 번째 훈련 데이터의 크기:", len(train_data[0]))  # 4096이어야 함
+# print("첫 번째 훈련 레이블의 구조:", train_labels[0])  # 원-핫 인코딩된 배열이어야 함
+
+# # 총 픽셀 데이터 수 계산
+# total_train_data_points = len(train_data) * len(train_data[0])
+# total_test_data_points = len(test_data) * len(test_data[0])
+
+# print("총 훈련 데이터 픽셀 수:", total_train_data_points)  # 예상: 4096 * 1110
+# print("총 테스트 데이터 픽셀 수:", total_test_data_points)  # 예상: 4096 * 333
 
 # 신경망 초기화 및 학습
 input_size = 4096  # 64x64 이미지의 픽셀 수
@@ -60,21 +77,8 @@ test_data, test_labels = load_data('test', 'test_data.csv')
 train_data = np.array(train_data)
 train_labels = np.array(train_labels)
 
-# print("훈련 데이터 개수:", len(train_data))  # 1110여야 함
-# print("훈련 레이블 개수:", len(train_labels))  # 1110여야 함
-# print("테스트 데이터 개수:", len(test_data))  # 333여야 함
-# print("테스트 레이블 개수:", len(test_labels))  # 333여야 함
-
-# # 첫 번째 데이터와 레이블의 크기 확인
-# print("첫 번째 훈련 데이터의 크기:", len(train_data[0]))  # 4096이어야 함
-# print("첫 번째 훈련 레이블의 구조:", train_labels[0])  # 원-핫 인코딩된 배열이어야 함
-
-# # 총 픽셀 데이터 수 계산
-# total_train_data_points = len(train_data) * len(train_data[0])
-# total_test_data_points = len(test_data) * len(test_data[0])
-
-# print("총 훈련 데이터 픽셀 수:", total_train_data_points)  # 예상: 4096 * 1110
-# print("총 테스트 데이터 픽셀 수:", total_test_data_points)  # 예상: 4096 * 333
+# train_data[10]의 픽셀 데이터를 64x64 형태로 변환
+image_data = np.array(train_data[10]).reshape(64, 64)
 
 # 활성화 함수: 시그모이드 순전파때 사용
 def sigmoid(x):
@@ -84,9 +88,22 @@ def sigmoid(x):
 def sigmoid_derivative(x):
     return x * (1 - x)
 
+
+def relu(x):
+    return np.maximum(0, x)
+
+def relu_derivative(x):
+    return np.where(x > 0, 1, 0)
+
 # 손실 함수: 평균 제곱 오차를 통하여 예측값과 실제 값의 차이 측정.
 def mean_squared_error(y_true, y_pred):
     return np.mean(np.square(y_true - y_pred))
+
+def accuracy(y_true, y_pred):
+    # 예측값이 가장 높은 값을 인덱스로 찾아 비교
+    predictions = np.argmax(y_pred, axis=1)
+    labels = np.argmax(y_true, axis=1)
+    return np.mean(predictions == labels)
 
 # 신경망 클래스 정의
 class NeuralNetwork:
@@ -132,13 +149,17 @@ class NeuralNetwork:
     def train(self, x, y, epochs):
         for epoch in range(epochs):
             output = self.forward(x)
-            loss = mean_squared_error(y, output)   
+            loss = mean_squared_error(y, output)
             self.backward(y)
+            acc = accuracy(y, output)  # 추가된 정확도 계산
             if epoch % 1 == 0:
-                print(f"Epoch {epoch + 1}, Loss: {loss}")
+                print(f"Epoch {epoch + 1}, Loss: {loss}, Accuracy: {acc * 100:.2f}%")
+   
 
 nn = NeuralNetwork(input_size, hidden_layers, output_size, learning_rate)
 nn.train(train_data, train_labels, epochs)
+
+
 
 
 # 현재 코드에서 에폭 로스 정확성까지 포함해서 코드 작성
