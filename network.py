@@ -52,9 +52,9 @@ import numpy as np
 #범용능력에 있어서 인데 왜??(아직 보지 못 하였던 문제를 올바르게 찾아야함.)
 #그렇다면 폰트를 컴퓨터가 인식을 해야하는데 아직 한번도 보지 못하였으니깐 데이터에서 훈련 데이터 따로 테스트 데이터로 나눠야한다는 소리
 input_size = 4096  # 64x64 이미지의 픽셀 수
-hidden_layers = [96]  # 히든 레이어 노드 수
+hidden_layers = [2000,1000]  # 히든 레이어 노드 수
 output_size = 110  # 클래스 수 (레이블이 10개이므로 출력 노드 수는 10)
-learning_rate = 0.0001
+learning_rate = 0.001
 epochs = 3  
 
 #데이터 로드
@@ -79,14 +79,10 @@ def load_data(sub_dir, file_name):
 
             # 레이블을 원-핫 인코딩 형태로 변환하여 추가
             one_hot_label = [0] * 110
-            one_hot_label[label] = 1
+            one_hot_label[label-1] = 1
             labels.append(one_hot_label)
 
     return data, labels
-
-
-
-
 
 # 데이터 로드 및 크기 확인
 train_data, train_labels = load_data('train', 'train_data.csv')
@@ -115,6 +111,7 @@ def relu(x):
 def relu_derivative(x):
     return np.where(x > 0, 1, 0)
 
+# 마지막 계층 소프트맥스 함수
 def softmax(x):
     exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
     return exp_x / np.sum(exp_x, axis=1, keepdims=True)
@@ -134,7 +131,7 @@ def categorical_crossentropy(y_true, y_pred):
     y_pred = np.clip(y_pred, epsilon, 1.0 - epsilon)
     return -np.mean(np.sum(y_true * np.log(y_pred), axis=1))
 
-use_mse = False
+use_mse = True
 
 def loss_function(y_true, y_pred):
     if use_mse:
