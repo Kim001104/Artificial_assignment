@@ -7,7 +7,7 @@ from PIL import Image
 # 하이퍼파라미터 설정
 input_size = 4096      # 64x64 이미지의 입력 크기
 hidden_layers = [96]   # 히든 레이어 노드 수
-output_size = 110      # 클래스 개수
+output_size = 111      # 클래스 개수
 learning_rate = 0.01
 epochs = 3
 
