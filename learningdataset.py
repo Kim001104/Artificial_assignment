@@ -26,11 +26,11 @@ for sentence in sentences:
 print(f"총 고유 글자 수: {len(unique_chars)}")
 
 # 3. 이미지 저장 디렉토리 설정
-base_output_dir = "c:\\Users\\motus\\OneDrive\\바탕 화면\\인공지능\\인공지능 과제2_글자\\한글글자데이터\\train2"
+base_output_dir = "c:\\Users\\motus\\OneDrive\\바탕 화면\\인공지능\\인공지능 과제2_글자\\한글글자데이터\\train3"
 if not os.path.exists(base_output_dir):
     os.makedirs(base_output_dir)
 
-# 4. 폰트 파일 경로 설정
+# 4. 폰트 파일 경로 설정 (23개폰트)
 # 여러 폰트를 리스트로 설정
 font_paths = [
     "C:\\Windows\\Fonts\\gulim.ttc",    #굴림
@@ -46,6 +46,16 @@ font_paths = [
     "C:\\Windows\\Fonts\\HMKMMAG.TTF",  #휴먼매직체
     "C:\\Windows\\Fonts\\HYSUPM.TTF",   #휴먼수평선
     "C:\\Windows\\Fonts\\HYBDAL.TTF",   #휴먼바디아트
+    "C:\\Windows\\Fonts\\HYGSRB.TTF",   #HY궁서
+    "C:\\Windows\\Fonts\\HYBDAL.TTF",   #HY바다L
+    "C:\\Windows\\Fonts\\HYMPRL.TTF",   #HY그래픽M
+    "C:\\Windows\\Fonts\\HYBSRB.TTF",   #HY백송B
+    "C:\\Windows\\Fonts\\HYSANB.TTF",   #HY산B
+    "C:\\Windows\\Fonts\\HYSNRL.TTF",   #HY신명조L
+    "C:\\Windows\\Fonts\\HYSNRL.TTF",   #HY수평선B
+    "C:\\Windows\\Fonts\\HYSUPM.TTF",   #HY수평선M
+    "C:\\Windows\\Fonts\\HYPORM.TTF",   #HY엽서M
+    "C:\\Windows\\Fonts\\HYWULB.TTF",   #HY울릉도B
 ]
 
 # 5. 글자당 이미지 생성 함수

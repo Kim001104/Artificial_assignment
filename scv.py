@@ -62,7 +62,7 @@ import pandas as pd
 import os
 
 # BMP 파일이 저장된 최상위 폴더 경로 설정 (train 폴더 or test 폴더)
-train_folder_path = "C:\\Users\\motus\\OneDrive\\바탕 화면\\인공지능\\인공지능 과제2_글자\\한글글자데이터\\train2"
+train_folder_path = "C:\\Users\\motus\\OneDrive\\바탕 화면\\인공지능\\인공지능 과제2_글자\\한글글자데이터\\train3"
 merge_data = []
 
 # 글자에 따른 레이블 매핑 설정
