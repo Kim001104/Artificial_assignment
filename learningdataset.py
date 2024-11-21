@@ -1,5 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 import os
+import random
+import numpy as np
 
 # 1. 주어진 문장들
 sentences = [
@@ -24,47 +26,47 @@ for sentence in sentences:
 print(f"총 고유 글자 수: {len(unique_chars)}")
 
 # 3. 이미지 저장 디렉토리 설정
-base_output_dir = "c:\\Users\\motus\\OneDrive\\바탕 화면\\인공지능\\인공지능 과제2_글자\\한글글자데이터\\train"
+base_output_dir = "c:\\Users\\motus\\OneDrive\\바탕 화면\\인공지능\\인공지능 과제2_글자\\한글글자데이터\\train2"
 if not os.path.exists(base_output_dir):
     os.makedirs(base_output_dir)
 
 # 4. 폰트 파일 경로 설정
 # 여러 폰트를 리스트로 설정
 font_paths = [
-    "C:\\Windows\\Fonts\\gulim.ttc",
-    "C:\\Windows\\Fonts\\NGULIM.TTF",
-    "C:\\Windows\\Fonts\\HMFMPYUN.TTF",
-    "C:\\Windows\\Fonts\\HMKMAMI.TTF",
+    "C:\\Windows\\Fonts\\gulim.ttc",    #굴림
+    "C:\\Windows\\Fonts\\NGULIM.TTF",   #새굴림
+    "C:\\Windows\\Fonts\\HMFMPYUN.TTF", #휴먼편지체
+    "C:\\Windows\\Fonts\\HMKMAMI.TTF",  #휴먼아미
     "C:\\Windows\\Fonts\\HMFMMUEX.TTC",
-    "C:\\Windows\\Fonts\\UNI_HSR.TTF",
+    "C:\\Windows\\Fonts\\UNI_HSR.TTF",  
     "C:\\Windows\\Fonts\\HYGTRE.TTF",
-    "C:\\Windows\\Fonts\\HYMJRE.TTF",
-    "C:\\Windows\\Fonts\\HYGPRM.TTF",
-    "C:\\Windows\\Fonts\\HYWULB.TTF"
+    "C:\\Windows\\Fonts\\HYMJRE.TTF",   
+    "C:\\Windows\\Fonts\\HYGPRM.TTF",   
+    "C:\\Windows\\Fonts\\HYWULB.TTF",   
+    "C:\\Windows\\Fonts\\HMKMMAG.TTF",  #휴먼매직체
+    "C:\\Windows\\Fonts\\HYSUPM.TTF",   #휴먼수평선
+    "C:\\Windows\\Fonts\\HYBDAL.TTF",   #휴먼바디아트
 ]
 
 # 5. 글자당 이미지 생성 함수
-def create_char_image(char, font_path, save_dir, img_size=(64, 64), font_size=64): 
-        # 흰색 배경으로 이미지 생성 ('L' 모드: 흑백)
-        img = Image.new('L', img_size, color=255)  # 배경 흰색
-        draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype(font_path, size=font_size)
-        
-        # 글자의 크기 계산
-        width, height = draw.textsize(char, font=font)
-        
-        # 글자를 중앙에 배치
-        position = ((img_size[0]-width)/2, (img_size[1]-height)/2)
-        draw.text(position, char, fill=0, font=font)  # 글자 검은색 
-        
-        # 폰트 이름 추출 (파일명에서 확장자 제거)
-        font_name = os.path.splitext(os.path.basename(font_path))[0]
-        
-        # 이미지 파일명에 글자와 폰트 이름 포함 (예: '경_gulim.bmp')
-        img_filename = f"{char}_{font_name}.bmp"
-        img_path = os.path.join(save_dir, img_filename)
-        img.save(img_path)
-        
+def create_char_image(char, font_path, save_dir, img_index, img_size=(64, 64), font_size=64): 
+    # 흰색 배경으로 이미지 생성 ('L' 모드: 흑백)
+    img = Image.new('L', img_size, color=255)  # 배경 흰색
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.truetype(font_path, size=font_size)
+    
+    # 글자의 크기 계산
+    width, height = draw.textsize(char, font=font)
+    
+    # 글자를 중앙에 배치
+    position = ((img_size[0]-width)/2, (img_size[1]-height)/2)
+    draw.text(position, char, fill=0, font=font)  # 글자 검은색 
+    
+    # 이미지 파일명: 1.bmp, 2.bmp, ...
+    img_filename = f"{img_index}.bmp"
+    img_path = os.path.join(save_dir, img_filename)
+    img.save(img_path)
+
 # 6. 모든 고유 글자에 대해 이미지 생성
 for char in unique_chars:
     # 글자별 디렉토리 경로 설정
@@ -72,11 +74,12 @@ for char in unique_chars:
     if not os.path.exists(char_dir):
         os.makedirs(char_dir)
     
+    # 이미지 파일 번호 초기화
+    img_index = 1
+    
     # 각 폰트별로 이미지 생성 및 저장
     for font_path in font_paths:
-        create_char_image(char, font_path, char_dir)
-        
+        create_char_image(char, font_path, char_dir, img_index)
+        img_index += 1  # 파일 번호 증가
+
 print("모든 글자의 BMP 이미지 생성 완료!")
-
-
-
