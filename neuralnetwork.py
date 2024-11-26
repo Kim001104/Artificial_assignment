@@ -93,98 +93,98 @@ def accuracy(y_true, y_pred):
     return correct / len(y_true)  # 정확도 계산
 
 
-"드롭아웃 함수 정의"
-# 드롭아웃 함수 정의
-def dropout(x, drop_rate):
+# "드롭아웃 함수 정의"
+# # 드롭아웃 함수 정의
+# def dropout(x, drop_rate):
     
-    mask = np.random.binomial(1, 1 - drop_rate, size=x.shape)  # 드롭아웃 마스크 생성
-    return x * mask / (1 - drop_rate)  # 드롭아웃 적용 후 스케일링
+#     mask = np.random.binomial(1, 1 - drop_rate, size=x.shape)  # 드롭아웃 마스크 생성
+#     return x * mask / (1 - drop_rate)  # 드롭아웃 적용 후 스케일링
 
 
 # 신경망 클래스 정의
 class NeuralNetwork:
-    def __init__(self, input_size, hidden_layers, output_size, learning_rate,drop_rate):  # 초기화 함수
+    def __init__(self, input_size, hidden_layers, output_size, learning_rate, drop_rate):
         self.learning_rate = learning_rate  # 학습률
         self.drop_rate = drop_rate  # 드롭아웃 비율
-        self.weights = []   # 가중치 저장 리스트
-        self.biases = []    # 편향 저장 리스트
-        layer_sizes = [input_size] + hidden_layers + [output_size]  # 각 레이어의 노드 수
+        self.weights = []  # 가중치 저장 리스트
+        self.biases = []  # 편향 저장 리스트
+        
+        # 네트워크 구조 정의
+        layer_sizes = [input_size] + hidden_layers + [output_size]  # 입력, 은닉, 출력층 노드 수
+        
+        # 각 레이어 가중치와 편향 초기화
+        for i in range(len(layer_sizes) - 1):
+            weight = np.random.randn(layer_sizes[i], layer_sizes[i + 1]) * np.sqrt(2.0 / layer_sizes[i])  # He 초기화
+            bias = np.zeros((1, layer_sizes[i + 1]))  # 편향 초기화
+            self.weights.append(weight)
+            self.biases.append(bias)
 
-        # 각 레이어의 가중치와 편향 초기화
-        for i in range(len(layer_sizes) - 1):   # 각 레이어에 대해 가중치와 편향 초기화
-            weight = np.random.randn(layer_sizes[i], layer_sizes[i + 1]) * np.sqrt(2.0 / layer_sizes[i])    # He 초기화
-            # weight = np.random.randn(layer_sizes[i], layer_sizes[i + 1]) * np.sqrt(1.0 / layer_sizes[i])    # Xavier 초기화
-            bias = np.zeros((1, layer_sizes[i + 1]))    # 편향 초기화
-            self.weights.append(weight) # 가중치 추가
-            self.biases.append(bias)    # 편향 추가
-
-    # 순전파 : 입력 데이터를 각 레이어에 전달하여 최종 출력값 계산
+    # 순전파
     def forward(self, x, training=True):
-        self.activations = [x]  # 입력 데이터 추가
-        for i in range(len(self.weights) - 1):  # 은닉층의 활성화 함수 적용
-            z = np.dot(self.activations[-1], self.weights[i]) + self.biases[i]
-            a = relu(z)
-            if training:
-                a = dropout(a, self.drop_rate)  
+        self.activations = [x]  # 입력 데이터를 첫 번째 활성화 값으로 설정
+        for i in range(len(self.weights) - 1):  # 은닉층에 대해 반복
+            z = np.dot(self.activations[-1], self.weights[i]) + self.biases[i]  # 선형 계산
+            a = relu(z)  # 활성화 함수 적용
+            # if training:
+            #     a = dropout(a, self.drop_rate)  # 드롭아웃 적용 (학습 시에만)
             self.activations.append(a)
+        # 출력층 계산
         z = np.dot(self.activations[-1], self.weights[-1]) + self.biases[-1]
-        a = softmax(z)
+        a = softmax(z)  # 소프트맥스 활성화 함수 적용
         self.activations.append(a)
         return self.activations[-1]
 
-    # 역전파 : 순전파의 최종 출력값과 실제 레이블 간의 차이를 계산하여 손실 측정
-    def backward(self, y_true): 
-        deltas = [self.activations[-1] - y_true]    # 출력층의 오차(예측값 - 실제값)
-        for i in reversed(range(len(self.weights) - 1)):    # 역방향으로 오차 전파
-            delta = deltas[-1].dot(self.weights[i + 1].T) * relu_derivative(self.activations[i + 1])    # 은닉층의 오차
-            deltas.append(delta)    # 오차 저장
-        deltas.reverse()    # 오차 역순으로 정렬
+    # 역전파
+    def backward(self, y_true):
+        # 출력층 오차
+        deltas = [self.activations[-1] - y_true]
+        
+        # 은닉층에서의 오차 전파
+        for i in reversed(range(len(self.weights) - 1)):
+            delta = deltas[-1].dot(self.weights[i + 1].T) * relu_derivative(self.activations[i + 1])
+            deltas.append(delta)
+        deltas.reverse()  # 순서를 원래대로 변경
+        
+        # 가중치 및 편향 업데이트
+        for i in range(len(self.weights)):
+            self.weights[i] -= self.learning_rate * self.activations[i].T.dot(deltas[i])
+            self.biases[i] -= self.learning_rate * np.sum(deltas[i], axis=0, keepdims=True)
 
-        for i in range(len(self.weights)):  # 가중치 및 편향 업데이트
-            self.weights[i] -= self.learning_rate * self.activations[i].T.dot(deltas[i])    # 기울기가 양수 일때 가중치 감소 기울기가 음수 일때 가중치 증가
-            self.biases[i] -= self.learning_rate * np.sum(deltas[i], axis=0, keepdims=True)   # 기울기가 양수 일때 편향 감소 기울기가 음수 일때 편향 증가
+    # 학습
+    def train(self, x, y, test_data, test_labels, epochs, learning_rate):
+        self.learning_rate = learning_rate  # 학습률 설정
+        for epoch in range(epochs):  # 에포크 반복
+            if (epoch + 1) % 50 == 0:  # 50 에포크마다 학습률 감소
+                self.learning_rate *= 0.5
 
-    def train(self, x, y, test_data, test_labels, epochs, batch_size,learning_rate):
-        self.learning_rate = learning_rate
-        for epoch in range(epochs):
-            if (epoch + 1) % 50 == 0:  # 100번째 에포크마다 학습률을 절반으로 줄임
-                self.learning_rate *= 0.5   # 학습률 감소
-            
-            indices = np.arange(x.shape[0]) # 데이터 인덱스 생성
-            np.random.shuffle(indices)  # 인덱스 섞기
-            total_loss = 0  # 총 손실 초기화
-            correct_predictions = 0 # 정확한 예측 수 초기화
+            # 순전파 및 손실 계산
+            output = self.forward(x, training=True)
+            loss = cross_entropy(y, output)
 
-            for start_idx in range(0, x.shape[0], batch_size):  # 배치 단위로 학습
-                batch_indices = indices[start_idx:start_idx + batch_size]   # 배치 인덱스 선택
-                batch_x = x[batch_indices]  # 배치 데이터
-                batch_y = y[batch_indices]  # 배치 레이블
+            # 정확도 계산
+            predictions = np.argmax(output, axis=1)
+            true_labels = np.argmax(y, axis=1)
+            train_accuracy = np.sum(predictions == true_labels) / len(y) * 100
 
-                output = self.forward(batch_x, training = True)  # 순전파 수행
-                loss = cross_entropy(batch_y, output) # 손실 계산
-                total_loss += loss  # 총 손실 누적
+            # 역전파 수행
+            self.backward(y)
 
-                predictions = np.argmax(output, axis=1) # 예측값
-                true_labels = np.argmax(batch_y, axis=1)    # 실제 레이블
-                correct_predictions += np.sum(predictions == true_labels)   # 정확한 예측 수
-
-                self.backward(batch_y)  # 역전파 수행
-
-            # train_accuracy = correct_predictions / x.shape[0] * 100 # 정확도 계산
-            average_loss = total_loss / (x.shape[0] // batch_size)  # 평균 손실 계산
-
-            # 테스트 데이터 정확도 계산
-            test_output = self.forward(test_data)
+            # 테스트 데이터 평가
+            test_output = self.forward(test_data, training=False)
             test_loss = cross_entropy(test_labels, test_output)
             test_predictions = np.argmax(test_output, axis=1)
             test_true_labels = np.argmax(test_labels, axis=1)
             test_accuracy = accuracy(test_true_labels, test_predictions)
 
-            print(f"Epoch {epoch + 1}/{epochs}, Train Loss: {average_loss:.4f},Test Loss : {test_loss:.4f},Test Accuracy: {test_accuracy * 100:.2f}%")
+            # 에포크 결과 출력
+            print(f"Epoch {epoch + 1}/{epochs}, Train Loss: {loss:.4f}, Test Loss: {test_loss:.4f}, "
+                  f"Train Accuracy: {train_accuracy:.2f}%, Test Accuracy: {test_accuracy * 100:.2f}%")
 
+    # 예측
     def predict(self, x):
-        output = self.forward(x)
+        output = self.forward(x, training=False)
         return np.argmax(output, axis=1)
+
 
 def img_predict(nn, train_data,test_data,train_labels, test_labels,title="Train vs Test (True vs Predicted Images)"):
     # 임의로 10개의 인덱스를 선택하여 학습 데이터와 테스트 데이터에서 이미지와 레이블을 가져옵니다.
@@ -230,7 +230,7 @@ test_data, test_labels = load_data('test', 'test_data.csv')
 # 신경망 객체 생성 및 학습 수행
 nn = NeuralNetwork(input_size, hidden_layers, output_size, learning_rate,drop_rate)
 
-nn.train(train_data, train_labels, test_data, test_labels, epochs, batch_size,learning_rate)
+nn.train(train_data, train_labels, test_data, test_labels, epochs, learning_rate)
 
 # 학습 데이터에서 10개의 이미지 쌍을 시각화하여 실제 레이블과 예측 레이블의 이미지를 비교
 img_predict(nn, train_data, test_data,train_labels,test_labels, title="Train vs Test (True vs Predicted Images)")
