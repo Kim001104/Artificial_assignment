@@ -2,12 +2,13 @@ import csv
 import os
 import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
 
 # 신경망 하이퍼파라미터 설정
 input_size = 4096           # 입력 크기: 64x64 이미지의 총 픽셀 수 (4096)
-hidden_layers = [256,128]  # 은닉층 노드 수
+hidden_layers = [250]  # 은닉층 노드 수
 output_size = 111            # 출력층 노드 수: 분류할 클래스 수
-learning_rate = 0.003       # 학습률: 가중치 업데이트의 크기
+learning_rate = 0.0007       # 학습률: 가중치 업데이트의 크기
 epochs = 200                  # 학습 반복 횟수
 batch_size = 32              # 배치 크기: 한 번에 학습할 데이터 수
 drop_rate = 0.1              # 드롭아웃 비율: 은닉층의 일부 노드를 무작위로 비활성화하는 비율
@@ -24,7 +25,7 @@ def load_data(sub_dir, file_name):
         reader = csv.reader(f)
         for row in reader:
             label = int(row[0]) -1   # 첫 번째 열은 레이블 정보 (0~110로 변환)
-            row_data = [float(value) / 255.0 for value in row[1:]]  # 각 픽셀 값을 0~1 범위로 정규화
+            row_data = [float(value) / 255.0  for value in row[1:]]  # 각 픽셀 값을 0~1 범위로 정규화
             pixel_data.append(row_data)  # 픽셀 데이터를 리스트에 추가
             #원핫 인코딩 생성
             one_hot_label = [0] * output_size   #출력 크기만큼 0으로 채워진 리스트 생성
@@ -43,6 +44,10 @@ def sigmoid(x):
 def relu(x):
     return np.maximum(0, x)  # ReLU 함수: 입력이 0보다 작으면 0, 크면 그대로 출력
 
+# Leaky Relu(순전파 사용)
+def leaky_relu(x):
+    return np.where(x > 0, x, x * 0.01)  # Leaky ReLU 함수: 입력이 0보다 작으면 0.01을 곱하고, 크면 그대로 출력
+
 # tanh(순전파 사용)
 def tanh(x):
     return np.tanh(x)  # tanh 함수: 입력값에 대한 쌍곡탄젠트 함수
@@ -55,6 +60,10 @@ def sigmoid_derivative(x):
 def relu_derivative(x):
     return np.where(x > 0, 1, 0)  # ReLU 미분: 입력이 0보다 크면 1, 작으면 0
 
+# Leaky Rel미분
+def leaky_relu_derivative(x):
+    return np.where(x > 0, 1, 0.01)  # Leaky ReLU 미분: 입력이 0보다 크면 1, 작으면 0.01
+
 # tanh 미분(역전파 사용)
 def tanh_derivative(x):
     return 1 - np.tanh(x) ** 2  # tanh 미분: 1 - tanh(x)^2
@@ -64,11 +73,12 @@ def softmax(x):
     exp_x = np.exp(x)  # 입력값 x에 대한 지수 함수 계산
     return exp_x / np.sum(exp_x, axis=1, keepdims=True)  # softmax: 확률로 변환
 
+
 "손실함수 정의"
-# 손실함수 정의
+# 평균제곱오차
 def MSE(y_true, y_pred):
     return np.mean((y_true-y_pred) ** 2)
-
+# 교차 엔트로피
 def cross_entropy(y_true, y_pred):
     return -np.sum(y_true * np.log(y_pred + 1e-10)) / len(y_true)
     
@@ -86,7 +96,7 @@ def accuracy(y_true, y_pred):
 "드롭아웃 함수 정의"
 # 드롭아웃 함수 정의
 def dropout(x, drop_rate):
-    """드롭아웃 함수: 노드의 일부를 무작위로 비활성화"""
+    
     mask = np.random.binomial(1, 1 - drop_rate, size=x.shape)  # 드롭아웃 마스크 생성
     return x * mask / (1 - drop_rate)  # 드롭아웃 적용 후 스케일링
 
@@ -134,10 +144,10 @@ class NeuralNetwork:
             self.weights[i] -= self.learning_rate * self.activations[i].T.dot(deltas[i])    # 기울기가 양수 일때 가중치 감소 기울기가 음수 일때 가중치 증가
             self.biases[i] -= self.learning_rate * np.sum(deltas[i], axis=0, keepdims=True)   # 기울기가 양수 일때 편향 감소 기울기가 음수 일때 편향 증가
 
-    def train(self, x, y, test_data, test_labels, epochs, batch_size,learning_rate=0.0005):
+    def train(self, x, y, test_data, test_labels, epochs, batch_size,learning_rate):
         self.learning_rate = learning_rate
         for epoch in range(epochs):
-            if (epoch + 1) % 100 == 0:  # 100번째 에포크마다 학습률을 절반으로 줄임
+            if (epoch + 1) % 50 == 0:  # 100번째 에포크마다 학습률을 절반으로 줄임
                 self.learning_rate *= 0.5   # 학습률 감소
             
             indices = np.arange(x.shape[0]) # 데이터 인덱스 생성
@@ -175,10 +185,6 @@ class NeuralNetwork:
     def predict(self, x):
         output = self.forward(x)
         return np.argmax(output, axis=1)
-
-
-import matplotlib.pyplot as plt
-import numpy as np
 
 def img_predict(nn, train_data,test_data,train_labels, test_labels,title="Train vs Test (True vs Predicted Images)"):
     # 임의로 10개의 인덱스를 선택하여 학습 데이터와 테스트 데이터에서 이미지와 레이블을 가져옵니다.
@@ -223,15 +229,14 @@ test_data, test_labels = load_data('test', 'test_data.csv')
 
 # 신경망 객체 생성 및 학습 수행
 nn = NeuralNetwork(input_size, hidden_layers, output_size, learning_rate,drop_rate)
-# 가중치와 편향 확인
-print("Weights:")
-for i, w in enumerate(nn.weights):
-    print(f"Layer {i}: {w.shape}")
 
-print("\nBiases:")
-for i, b in enumerate(nn.biases):
-    print(f"Layer {i}: {b.shape}")
 nn.train(train_data, train_labels, test_data, test_labels, epochs, batch_size,learning_rate)
 
 # 학습 데이터에서 10개의 이미지 쌍을 시각화하여 실제 레이블과 예측 레이블의 이미지를 비교
 img_predict(nn, train_data, test_data,train_labels,test_labels, title="Train vs Test (True vs Predicted Images)")
+
+
+
+
+
+
