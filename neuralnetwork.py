@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 input_size = 4096           # 입력 크기: 64x64 이미지의 총 픽셀 수 (4096)
 hidden_layers = [250]  # 은닉층 노드 수
 output_size = 111            # 출력층 노드 수: 분류할 클래스 수
-learning_rate = 0.0007       # 학습률: 가중치 업데이트의 크기
-epochs = 200                  # 학습 반복 횟수
+learning_rate = 0.001       # 학습률: 가중치 업데이트의 크기
+epochs = 300                  # 학습 반복 횟수
 batch_size = 32              # 배치 크기: 한 번에 학습할 데이터 수
 drop_rate = 0.1              # 드롭아웃 비율: 은닉층의 일부 노드를 무작위로 비활성화하는 비율
 
@@ -150,41 +150,76 @@ class NeuralNetwork:
             self.weights[i] -= self.learning_rate * self.activations[i].T.dot(deltas[i])
             self.biases[i] -= self.learning_rate * np.sum(deltas[i], axis=0, keepdims=True)
 
-    # 학습
-    def train(self, x, y, test_data, test_labels, epochs, learning_rate):
-        self.learning_rate = learning_rate  # 학습률 설정
-        for epoch in range(epochs):  # 에포크 반복
-            if (epoch + 1) % 50 == 0:  # 50 에포크마다 학습률 감소
-                self.learning_rate *= 0.5
 
-            # 순전파 및 손실 계산
-            output = self.forward(x, training=True)
-            loss = cross_entropy(y, output)
 
-            # 정확도 계산
-            predictions = np.argmax(output, axis=1)
-            true_labels = np.argmax(y, axis=1)
-            train_accuracy = np.sum(predictions == true_labels) / len(y) * 100
+    # 학습 함수
+    def train(self, x, y, epochs, learning_rate):
+        self.learning_rate = learning_rate
 
-            # 역전파 수행
-            self.backward(y)
+        # 클래스별 데이터 인덱스 생성
+        class_indices = {label: np.where(np.argmax(y, axis=1) == label)[0] for label in range(y.shape[1])}
 
-            # 테스트 데이터 평가
-            test_output = self.forward(test_data, training=False)
-            test_loss = cross_entropy(test_labels, test_output)
-            test_predictions = np.argmax(test_output, axis=1)
-            test_true_labels = np.argmax(test_labels, axis=1)
-            test_accuracy = accuracy(test_true_labels, test_predictions)
+        for epoch in range(epochs):
+            if (epoch + 1) % 50 == 0:  # 50번째 에포크마다 학습률 감소
+                self.learning_rate *= 0.5  
+            if (epoch + 1) % 10 == 0:
+                print("Performing evaluation...")
+                self.evaluate(x, y) # 평가 실행
 
-            # 에포크 결과 출력
-            print(f"Epoch {epoch + 1}/{epochs}, Train Loss: {loss:.4f}, Test Loss: {test_loss:.4f}, "
-                  f"Train Accuracy: {train_accuracy:.2f}%, Test Accuracy: {test_accuracy * 100:.2f}%")
+            total_loss = 0  # 총 손실 초기화
+            correct_predictions = 0  # 정확한 예측 수 초기화
 
-    # 예측
+            # 클래스별 학습 루프
+            for class_label, indices in class_indices.items():
+                np.random.shuffle(indices)  # 클래스 데이터를 섞어서 순차적으로 학습
+                class_x = x[indices]
+                class_y = y[indices]
+
+                # 순전파
+                output = self.forward(class_x, training=True)
+                loss = cross_entropy(class_y, output)
+                total_loss += loss
+
+                # 정확도 계산
+                predictions = np.argmax(output, axis=1)
+                true_labels = np.argmax(class_y, axis=1)
+                correct_predictions += np.sum(predictions == true_labels)
+
+                # 역전파
+                self.backward(class_y)
+
+            # 평균 손실 및 학습 정확도 계산
+            average_loss = total_loss / len(x)  # 전체 데이터 크기로 나눔
+            train_accuracy = correct_predictions / len(x) * 100
+
+            print(f"Epoch {epoch + 1}/{epochs}, Train Loss: {average_loss:.4f}, Train Accuracy: {train_accuracy:.2f}%")
+
+    # 평가 함수
+    def evaluate(self, x, y):
+        test_output = self.forward(x, training=False)
+        test_loss = cross_entropy(y, test_output)
+        test_predictions = np.argmax(test_output, axis=1)
+        test_true_labels = np.argmax(y, axis=1)
+        test_accuracy = accuracy(test_true_labels, test_predictions)
+
+        print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy * 100:.2f}%")
+        return test_loss, test_accuracy
+
     def predict(self, x):
         output = self.forward(x, training=False)
-        return np.argmax(output, axis=1)
+        return np.argmax(output, axis=1)    
 
+# 데이터 로드
+train_data, train_labels = load_data('train', 'train_data.csv')
+test_data, test_labels = load_data('test', 'test_data.csv')
+
+# 신경망 객체 생성
+nn = NeuralNetwork(input_size, hidden_layers, output_size, learning_rate, drop_rate)
+# 학습 실행
+nn.train(train_data, train_labels, epochs, learning_rate)
+
+# 평가 실행
+nn.evaluate(test_data, test_labels) 
 
 def img_predict(nn, train_data,test_data,train_labels, test_labels,title="Train vs Test (True vs Predicted Images)"):
     # 임의로 10개의 인덱스를 선택하여 학습 데이터와 테스트 데이터에서 이미지와 레이블을 가져옵니다.
@@ -223,14 +258,7 @@ def img_predict(nn, train_data,test_data,train_labels, test_labels,title="Train 
     plt.suptitle(title, fontsize=16)
     plt.show()
 
-# 데이터 로드
-train_data, train_labels = load_data('train3', 'train3_data.csv')
-test_data, test_labels = load_data('test', 'test_data.csv')
 
-# 신경망 객체 생성 및 학습 수행
-nn = NeuralNetwork(input_size, hidden_layers, output_size, learning_rate,drop_rate)
-
-nn.train(train_data, train_labels, test_data, test_labels, epochs, learning_rate)
 
 # 학습 데이터에서 10개의 이미지 쌍을 시각화하여 실제 레이블과 예측 레이블의 이미지를 비교
 img_predict(nn, train_data, test_data,train_labels,test_labels, title="Train vs Test (True vs Predicted Images)")
