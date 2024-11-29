@@ -72,7 +72,7 @@ def create_char_image(char, font_path, save_dir, img_index, img_size=(64, 64), f
     position = ((img_size[0]-width)/2, (img_size[1]-height)/2)
     draw.text(position, char, fill=0, font=font)  # 글자 검은색 
     
-    # 이미지 파일명: 1.bmp, 2.bmp, ...
+    
     img_filename = f"{img_index}.bmp"
     img_path = os.path.join(save_dir, img_filename)
     img.save(img_path)
