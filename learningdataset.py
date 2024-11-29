@@ -3,7 +3,7 @@ import os
 import random
 import numpy as np
 
-# 1. 주어진 문장들
+#주어진 문장들
 sentences = [
     "경 기 도 고 양 시 일 산 서 구 탄 현 로 1 3 6 1 1 2 동 1 6 0 1 호",
     "김 동 현",
@@ -15,7 +15,7 @@ sentences = [
     "얼 음 에 싸 인 만 물 은 죽 음 이 있 을 뿐 이 다"
 ]
 
-# 2. 고유한 글자 추출
+#고유한 글자 추출
 unique_chars = set()
 for sentence in sentences:
     for char in sentence:
@@ -25,12 +25,12 @@ for sentence in sentences:
 
 print(f"총 고유 글자 수: {len(unique_chars)}")
 
-# 3. 이미지 저장 디렉토리 설정
+#이미지 저장 디렉토리 설정
 base_output_dir = "c:\\Users\\motus\\OneDrive\\바탕 화면\\인공지능\\인공지능 과제2_글자\\한글글자데이터\\train3"
 if not os.path.exists(base_output_dir):
     os.makedirs(base_output_dir)
 
-# 4. 폰트 파일 경로 설정 (23개폰트)
+#폰트 파일 경로 설정 (23개폰트)
 # 여러 폰트를 리스트로 설정
 font_paths = [
     "C:\\Windows\\Fonts\\gulim.ttc",    #굴림
@@ -58,7 +58,7 @@ font_paths = [
     "C:\\Windows\\Fonts\\HYWULB.TTF",   #HY울릉도B
 ]
 
-# 5. 글자당 이미지 생성 함수
+#글자당 이미지 생성 함수
 def create_char_image(char, font_path, save_dir, img_index, img_size=(64, 64), font_size=64): 
     # 흰색 배경으로 이미지 생성 ('L' 모드: 흑백)
     img = Image.new('L', img_size, color=255)  # 배경 흰색
@@ -77,7 +77,7 @@ def create_char_image(char, font_path, save_dir, img_index, img_size=(64, 64), f
     img_path = os.path.join(save_dir, img_filename)
     img.save(img_path)
 
-# 6. 모든 고유 글자에 대해 이미지 생성
+#모든 고유 글자에 대해 이미지 생성
 for char in unique_chars:
     # 글자별 디렉토리 경로 설정
     char_dir = os.path.join(base_output_dir, char)
@@ -92,4 +92,4 @@ for char in unique_chars:
         create_char_image(char, font_path, char_dir, img_index)
         img_index += 1  # 파일 번호 증가
 
-print("모든 글자의 BMP 이미지 생성 완료!")
+print("완료")

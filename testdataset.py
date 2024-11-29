@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import random
 
-# 1. 주어진 문장들
+#주어진 문장들
 sentences = [
     "경 기 도 고 양 시 일 산 서 구 탄 현 로 1 3 6 1 1 2 동 1 6 0 1 호",
     "김 동 현",
@@ -16,7 +16,7 @@ sentences = [
     "얼 음 에 싸 인 만 물 은 죽 음 이 있 을 뿐 이 다"
 ]
 
-# 2. 고유한 글자 추출
+#고유한 글자 추출
 unique_chars = set()
 for sentence in sentences:
     for char in sentence:
@@ -25,19 +25,19 @@ for sentence in sentences:
 
 print(f"총 고유 글자 수: {len(unique_chars)}")
 
-# 3. 이미지 저장 디렉토리 설정
+#이미지 저장 디렉토리 설정
 base_output_dir = "c:\\Users\\motus\\OneDrive\\바탕 화면\\인공지능\\인공지능 과제2_글자\\한글글자데이터\\test"
 if not os.path.exists(base_output_dir):
     os.makedirs(base_output_dir)
 
-# 4. 폰트 경로 설정
+#폰트 경로 설정
 font_paths = [
     "C:\\Windows\\Fonts\\ahn_l.ttf",    # 안상수2006가는보통
     "C:\\Windows\\Fonts\\HMFMOLD.TTF", # 휴먼옛체
     "C:\\Windows\\Fonts\\HMFMPYUN.TTF"  # 휴먼편지체
 ]
 
-# 5. 이미지 생성 및 변형 함수
+#이미지 생성 및 변형 함수
 def create_and_augment_image(char, font_path, output_path):
     # 글자 이미지 생성
     font = ImageFont.truetype(font_path, 64)  # 폰트 크기 설정
@@ -52,7 +52,7 @@ def create_and_augment_image(char, font_path, output_path):
     # 이미지 저장
     image.save(output_path, format="bmp")
 
-# 6. 변형 함수 (가로/세로 노이즈 추가)
+#변형 함수 (가로/세로 노이즈 추가)
 def augment_image(image):
     
     transformations = "add_noise"
@@ -77,7 +77,7 @@ def augment_image(image):
 
     return image
 
-# 7. 각 글자마다 디렉토리 생성 및 이미지 저장
+#각 글자마다 디렉토리 생성 및 이미지 저장
 for char in unique_chars:
     char_dir = os.path.join(base_output_dir, char)
     os.makedirs(char_dir, exist_ok=True)
@@ -92,4 +92,4 @@ for char in unique_chars:
         # 인덱스를 증가시켜 다음 이미지 파일 이름으로 사용
         file_index += 1
 
-print("모든 글자 이미지 생성 및 변형 완료.")
+print("완료")
